@@ -1,36 +1,24 @@
-import dotenv from "dotenv";
 import { Client } from "wolvesville.js";
-import { CronJob } from "cron";
-import logger from "./functions/logger.js";
 import chalk from "chalk";
+import config from "./config.js";
+import logger from "./functions/logger.js";
+import { manageClanQuestJob } from "./functions/clanQuests.js";
+import { autoMessageCronJobs } from "./functions/autoMessages.js";
 
-dotenv.config({ path: new URL("../.env", import.meta.url) });
-
-const client = new Client(process.env.WOLVESVILLE_BOT_API_KEY);
+const client = new Client(config.apiKey);
 
 async function main() {
     printAsciiLogo();
     logger.info("Bot starting...");
+    if (config.dryRun) logger.warn("DRY_RUN is enabled - no quests are claimed and no messages are sent.");
 
-    const clan = await client.clans.fetch(process.env.WOLVESVILLE_CLAN_ID);
-    autoMessageCronJob(clan);
-}
+    const clan = await client.clans.fetch(config.clanId);
+    /* Only clans the bot key is authorized for expose the quest and chat managers. */
+    if (!clan.quests || !clan.chat) throw new Error("CLAN_NOT_AUTHORIZED: the bot API key does not belong to this clan");
+    logger.success(`Connected to clan "${clan.name}".`);
 
-/*
-    Automatically sends a clan message every day at
-    18:00 in Europe/Berline time zone.
- */
-function autoMessageCronJob(clan) {
-    CronJob.from({
-        cronTime: '0 0 18 * * *',
-        onTick: async () => {
-            await clan.chat.send(process.env.CLAN_MESSAGE_CONTENT)
-                .then(() => logger.success("Message cron job successfully"))
-                .catch(logger.error);
-        },
-        start: true,
-        timeZone: 'Europe/Berlin',
-    });
+    manageClanQuestJob(clan);
+    autoMessageCronJobs(clan);
 }
 
 function printAsciiLogo() {
@@ -43,4 +31,7 @@ function printAsciiLogo() {
         "                                                                                                                      "));
 }
 
-main();
+main().catch(error => {
+    logger.error("Bot could not start:", error.message ?? error);
+    process.exit(1);
+});

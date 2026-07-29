@@ -1,0 +1,17 @@
+[
+  {
+    "name": "quest-vote-reminder",
+    "time": "18:00",
+    "message": "🔥 | Please vote for the next Clan Quest"
+  },
+  {
+    "name": "weekend-reminder",
+    "time": "12:00",
+    "days": "6,0",
+    "enabled": false,
+    "message": [
+      "🐺 | Have a great weekend, don't forget your quest participation!",
+      "🌙 | Weekend time - join the Clan Quest!"
+    ]
+  }
+]
